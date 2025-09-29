@@ -8,46 +8,44 @@ const isProtectedRoute = createRouteMatcher([
   "/transaction(.*)",
 ]);
 
-// Create Arcjet middleware
+// Arcjet setup
 const aj = arcjet({
   key: process.env.ARCJET_KEY,
-  // characteristics: ["userId"], // Track based on Clerk userId
+  characteristics: ["userId"], // optional, helps link requests to Clerk users
   rules: [
-    // Shield protection for content and security
-    shield({
-      mode: "LIVE",
-    }),
+    shield({ mode: "LIVE" }),
     detectBot({
-      mode: "LIVE", // will block requests. Use "DRY_RUN" to log only
+      mode: "LIVE",
       allow: [
-        "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
-        "GO_HTTP", // For Inngest
-        // See the full list at https://arcjet.com/bot-list
+        "CATEGORY:SEARCH_ENGINE",
+        "GO_HTTP",
       ],
     }),
   ],
 });
 
-// Create base Clerk middleware
+// Clerk setup
 const clerk = clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+  const { userId, redirectToSignIn } = await auth();
 
   if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
     return redirectToSignIn();
   }
 
   return NextResponse.next();
 });
 
-// Chain middlewares - ArcJet runs first, then Clerk
+// Chain middlewares
 export default createMiddleware(aj, clerk);
 
+// Ensure Clerk runs on these routes
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
+    "/dashboard(.*)",
+    "/account(.*)",
+    "/transaction(.*)",
+    "/api(.*)",
+    "/sign-in(.*)",
+    "/sign-up(.*)",
   ],
 };
