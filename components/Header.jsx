@@ -18,7 +18,7 @@ const Header = async () => {
             alt="Welth Logo"
             width={200}
             height={60}
-            className="h-12 w-auto object-contain"
+            className="h-8 w-auto object-contain"
           />
         </Link>
 
@@ -30,8 +30,7 @@ const Header = async () => {
             </a>
             <a
               href="#testimonials"
-              className="text-gray-600 hover:text-blue-600"
-            >
+              className="text-gray-600 hover:text-blue-600">
               Testimonials
             </a>
           </SignedOut>
@@ -42,8 +41,7 @@ const Header = async () => {
           <SignedIn>
             <Link
               href="/dashboard"
-              className="text-gray-600 hover:text-blue-600 flex items-center gap-2"
-            >
+              className="text-gray-600 hover:text-blue-600 flex items-center gap-2">
               <Button variant="outline">
                 <LayoutDashboard size={18} />
                 <span className="hidden md:inline">Dashboard</span>
@@ -65,7 +63,7 @@ const Header = async () => {
             <UserButton
               appearance={{
                 elements: {
-                  avatarBox: "w-10 h-10",
+                  avatarBox: "w-12 h-12",
                 },
               }}
             />
