@@ -1,12 +1,11 @@
-"use server";
+"use strict";
 
-import { db } from "@/lib/prisma";
-import { subDays } from "date-fns";
+const { db } = require("@/lib/prisma");
+const { subDays } = require("date-fns");
 
-const ACCOUNT_ID = "account-id";
-const USER_ID = "user-id";
+const ACCOUNT_ID = process.env.NEXT_PUBLIC_ACCOUNT_ID;
+const USER_ID = process.env.NEXT_PUBLIC_USER_ID;
 
-// Categories with their typical amount ranges
 const CATEGORIES = {
   INCOME: [
     { name: "salary", range: [5000, 8000] },
@@ -28,12 +27,10 @@ const CATEGORIES = {
   ],
 };
 
-// Helper to generate random amount within a range
 function getRandomAmount(min, max) {
   return Number((Math.random() * (max - min) + min).toFixed(2));
 }
 
-// Helper to get random category with amount
 function getRandomCategory(type) {
   const categories = CATEGORIES[type];
   const category = categories[Math.floor(Math.random() * categories.length)];
@@ -41,24 +38,20 @@ function getRandomCategory(type) {
   return { category: category.name, amount };
 }
 
-export async function seedTransactions() {
+async function seedTransactions() {
   try {
-    // Generate 90 days of transactions
     const transactions = [];
     let totalBalance = 0;
 
     for (let i = 90; i >= 0; i--) {
       const date = subDays(new Date(), i);
-
-      // Generate 1-3 transactions per day
       const transactionsPerDay = Math.floor(Math.random() * 3) + 1;
 
       for (let j = 0; j < transactionsPerDay; j++) {
-        // 40% chance of income, 60% chance of expense
         const type = Math.random() < 0.4 ? "INCOME" : "EXPENSE";
         const { category, amount } = getRandomCategory(type);
 
-        const transaction = {
+        transactions.push({
           id: crypto.randomUUID(),
           type,
           amount,
@@ -72,38 +65,34 @@ export async function seedTransactions() {
           accountId: ACCOUNT_ID,
           createdAt: date,
           updatedAt: date,
-        };
+        });
 
         totalBalance += type === "INCOME" ? amount : -amount;
-        transactions.push(transaction);
       }
     }
 
-    // Insert transactions in batches and update account balance
-    await db.$transaction(async (tx) => {
-      // Clear existing transactions
-      await tx.transaction.deleteMany({
-        where: { accountId: ACCOUNT_ID },
-      });
-
-      // Insert new transactions
-      await tx.transaction.createMany({
-        data: transactions,
-      });
-
-      // Update account balance
-      await tx.account.update({
-        where: { id: ACCOUNT_ID },
-        data: { balance: totalBalance },
-      });
+    // Clear existing transactions
+    await db.transaction.deleteMany({
+      where: { accountId: ACCOUNT_ID },
     });
 
-    return {
-      success: true,
-      message: `Created ${transactions.length} transactions`,
-    };
+    // Insert in batches
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+      const batch = transactions.slice(i, i + BATCH_SIZE);
+      await db.transaction.createMany({ data: batch });
+    }
+
+    // Update account balance
+    await db.account.update({
+      where: { id: ACCOUNT_ID },
+      data: { balance: totalBalance },
+    });
+
+    console.log(`Created ${transactions.length} transactions`);
   } catch (error) {
     console.error("Error seeding transactions:", error);
-    return { success: false, error: error.message };
   }
 }
+
+module.exports = { seedTransactions };
