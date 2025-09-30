@@ -5,9 +5,8 @@ import createMiddleware from "@arcjet/next/createMiddleware";
 import detectBot from "@arcjet/next/detectBot";
 import shield from "@arcjet/next/shield";
 
-// Import only needed Clerk features
-import { clerkMiddleware } from "@clerk/nextjs/server";
-import createRouteMatcher from "@clerk/nextjs/server/createRouteMatcher";
+// Import Clerk middleware and route matcher
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // Match protected routes
 const isProtectedRoute = createRouteMatcher([
@@ -17,7 +16,7 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 // Lazy-load ArcJet configuration
-const arcjetMiddleware = async () => {
+async function getArcjet() {
   const { default: arcjet } = await import("@arcjet/next");
   return arcjet({
     key: process.env.ARCJET_KEY,
@@ -29,9 +28,14 @@ const arcjetMiddleware = async () => {
       }),
     ],
   });
+}
+
+// Compose middlewares
+const arcjet = async (req) => {
+  const middleware = await getArcjet();
+  return middleware(req);
 };
 
-// Clerk middleware
 const clerk = clerkMiddleware(async (auth, req) => {
   const { userId, redirectToSignIn } = await auth();
   if (!userId && isProtectedRoute(req)) {
@@ -40,8 +44,8 @@ const clerk = clerkMiddleware(async (auth, req) => {
   return NextResponse.next();
 });
 
-// Compose and export middleware
-export default createMiddleware(async () => await arcjetMiddleware(), clerk);
+// Export combined middleware
+export default createMiddleware(arcjet, clerk);
 
 export const config = {
   matcher: [
