@@ -1,4 +1,4 @@
-// File: middleware.js (or middleware.ts)
+// File: middleware.js
 
 import { NextResponse } from "next/server";
 import { createRouteMatcher } from "@clerk/nextjs/server";
@@ -10,9 +10,24 @@ const isProtectedRoute = createRouteMatcher([
   "/transaction(.*)",
 ]);
 
-// Dynamically load and run ArcJet
+// Dynamically load and run Clerk
+async function runClerk(req, ev) {
+  const { clerkMiddleware } = await import("@clerk/nextjs/server");
+  const handler = clerkMiddleware(async (authenticate, request) => {
+    const { userId, redirectToSignIn } = await authenticate();
+    if (!userId && isProtectedRoute(request)) {
+      return redirectToSignIn();
+    }
+    return NextResponse.next();
+  });
+  return handler(ev, req);
+}
+
+// Dynamically load minimal ArcJet pieces via subpath imports
 async function runArcJet(req) {
-  const { default: arcjet, detectBot, shield } = await import("@arcjet/next");
+  const arcjet = (await import("@arcjet/next/dist/edge")).default;
+  const { detectBot } = await import("@arcjet/next/dist/middleware/detectBot");
+  const { shield } = await import("@arcjet/next/dist/middleware/shield");
   const plugin = arcjet({
     key: process.env.ARCJET_KEY,
     rules: [
@@ -26,31 +41,19 @@ async function runArcJet(req) {
   return plugin(req);
 }
 
-// Dynamically load and run Clerk
-async function runClerk(req, auth) {
-  const { clerkMiddleware } = await import("@clerk/nextjs/server");
-  return clerkMiddleware(async (authenticate, request) => {
-    const { userId, redirectToSignIn } = await authenticate();
-    if (!userId && isProtectedRoute(request)) {
-      return redirectToSignIn();
-    }
-    return NextResponse.next();
-  })(auth, req);
-}
-
 export default async function middleware(req, ev) {
-  // Run Clerk first (so protected routes redirect early)
+  // Run Clerk middleware first
   const clerkResponse = await runClerk(req, ev);
   if (clerkResponse) return clerkResponse;
 
-  // Otherwise run ArcJet
+  // Then run ArcJet bot-shielding
   return await runArcJet(req);
 }
 
 export const config = {
   matcher: [
-    // Clerk-protected and ArcJet-monitored paths
-    "/((?!_next|.*\\.(?:html?|css|js|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Only apply to HTML pages and API/trpc routes, skip static assets
+    "/((?!_next/static|_next/image|.*\\.(?:css|js|png|jpg|svg|woff2?)).*)",
     "/(api|trpc)(.*)",
   ],
 };
