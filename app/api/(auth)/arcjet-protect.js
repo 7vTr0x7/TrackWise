@@ -1,5 +1,4 @@
 import arcjet from "@arcjet/next";
-import { NextResponse } from "next/server";
 
 const aj = arcjet({
   key: process.env.ARCJET_KEY,
@@ -13,10 +12,12 @@ const aj = arcjet({
   ],
 });
 
-export async function arcjetProtect(req) {
+export default async function handler(req, res) {
   const decision = await aj.protect(req);
+
   if (decision.isDenied()) {
-    return new NextResponse("Forbidden", { status: 403 });
+    return res.status(403).send("Forbidden");
   }
-  return null;
+
+  res.status(200).send("OK");
 }

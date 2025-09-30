@@ -1,19 +1,4 @@
-import { clerk } from "./middleware/clerk";
-import { arcjetProtect } from "./middleware/arcjet";
-
-export default async function middleware(req) {
-  const url = new URL(req.url);
-
-  // Run Arcjet only for API routes
-  if (url.pathname.startsWith("/api")) {
-    const denied = await arcjetProtect(req);
-    if (denied) return denied;
-  }
-
-  // Run Clerk for everything
-  return clerk(req);
-}
-
+// Root-level middleware.js for Vercel Edge
 export const config = {
   matcher: [
     // Skip Next.js internals and static files
@@ -22,3 +7,40 @@ export const config = {
     "/(api|trpc)(.*)",
   ],
 };
+
+export default async function middleware(req) {
+  const url = new URL(req.url);
+
+  // Simple redirect example for protected pages
+  if (
+    url.pathname.startsWith("/dashboard") ||
+    url.pathname.startsWith("/account") ||
+    url.pathname.startsWith("/transaction")
+  ) {
+    const res = await fetch(`${url.origin}/api/check-auth`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pathname: url.pathname }),
+    });
+
+    const data = await res.json();
+    if (!data.authorized) {
+      return Response.redirect(`${url.origin}/sign-in`);
+    }
+  }
+
+  // Lightweight Arcjet check via server API
+  if (url.pathname.startsWith("/api")) {
+    const res = await fetch(`${url.origin}/api/arcjet-protect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pathname: url.pathname }),
+    });
+
+    if (res.status === 403) {
+      return new Response("Forbidden", { status: 403 });
+    }
+  }
+
+  return Response.next();
+}
