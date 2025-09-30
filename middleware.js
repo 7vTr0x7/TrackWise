@@ -23,11 +23,10 @@ async function runClerk(req, ev) {
   return handler(ev, req);
 }
 
-// Dynamically load minimal ArcJet pieces via subpath imports
+// Dynamically load ArcJet core and middleware functions
 async function runArcJet(req) {
-  const arcjet = (await import("@arcjet/next/dist/edge")).default;
-  const { detectBot } = await import("@arcjet/next/dist/middleware/detectBot");
-  const { shield } = await import("@arcjet/next/dist/middleware/shield");
+  const arcjetModule = await import("@arcjet/next");
+  const { default: arcjet, detectBot, shield } = arcjetModule;
   const plugin = arcjet({
     key: process.env.ARCJET_KEY,
     rules: [
