@@ -10,10 +10,18 @@ const isProtectedRoute = createRouteMatcher([
 export async function middleware(req) {
   const url = req.nextUrl.pathname;
 
-  // Run Arcjet only for API and general routes
-  if (url.startsWith("/api") || url.startsWith("/trpc") || !url.includes(".")) {
-    const arcjet = (await import("@arcjet/next")).default;
-    const { detectBot, shield } = await import("@arcjet/next/rules");
+  // ARCJET: Only load when needed
+  if (
+    url.startsWith("/api") ||
+    url.startsWith("/trpc") ||
+    (!url.includes(".") &&
+      !url.startsWith("/dashboard") &&
+      !url.startsWith("/account") &&
+      !url.startsWith("/transaction"))
+  ) {
+    const arcjetModule = await import("@arcjet/next");
+    const arcjet = arcjetModule.default;
+    const { detectBot, shield } = arcjetModule;
 
     const aj = arcjet({
       key: process.env.ARCJET_KEY,
@@ -30,7 +38,7 @@ export async function middleware(req) {
     if (arcjetResponse) return arcjetResponse;
   }
 
-  // Run Clerk only for protected routes
+  // CLERK: Only load for protected routes
   if (isProtectedRoute(req)) {
     const { clerkMiddleware } = await import("@clerk/nextjs/server");
     const clerk = clerkMiddleware(async (auth, req) => {
