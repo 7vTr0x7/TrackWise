@@ -1,54 +1,59 @@
-
-import arcjet, { createMiddleware, detectBot, shield } from "@arcjet/next";
+import arcjet from "@arcjet/next";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// Clerk-protected routes
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/account(.*)",
   "/transaction(.*)",
 ]);
 
-// Create Arcjet middleware
+// Arcjet instance (only used for API)
 const aj = arcjet({
   key: process.env.ARCJET_KEY,
-  // characteristics: ["userId"], // Track based on Clerk userId
   rules: [
-    // Shield protection for content and security
-    shield({
+    { type: "shield", mode: "LIVE" },
+    {
+      type: "detectBot",
       mode: "LIVE",
-    }),
-    detectBot({
-      mode: "LIVE", // will block requests. Use "DRY_RUN" to log only
-      allow: [
-        "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
-        "GO_HTTP", // For Inngest
-        // See the full list at https://arcjet.com/bot-list
-      ],
-    }),
+      allow: ["CATEGORY:SEARCH_ENGINE", "GO_HTTP"],
+    },
   ],
 });
 
-// Create base Clerk middleware
+// Clerk middleware
 const clerk = clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+  const { userId, redirectToSignIn } = await auth();
 
   if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
     return redirectToSignIn();
   }
 
   return NextResponse.next();
 });
 
-// Chain middlewares - ArcJet runs first, then Clerk
-export default createMiddleware(aj, clerk);
+// Main middleware
+export default async function middleware(req: Request) {
+  const url = new URL(req.url);
+
+  // Run Arcjet only for API routes
+  if (url.pathname.startsWith("/api")) {
+    const decision = await aj.protect(req);
+    if (decision.isDenied()) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+  }
+
+  // Run Clerk for everything
+  return clerk(req);
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
+    // Skip Next.js internals and static files
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
+    // Always run for API
     "/(api|trpc)(.*)",
   ],
 };
