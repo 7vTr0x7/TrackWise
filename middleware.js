@@ -1,48 +1,13 @@
-import arcjet from "@arcjet/next";
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { clerk } from "./middleware/clerk";
+import { arcjetProtect } from "./middleware/arcjet";
 
-// Clerk-protected routes
-const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/account(.*)",
-  "/transaction(.*)",
-]);
-
-// Arcjet instance (only used for API)
-const aj = arcjet({
-  key: process.env.ARCJET_KEY,
-  rules: [
-    { type: "shield", mode: "LIVE" },
-    {
-      type: "detectBot",
-      mode: "LIVE",
-      allow: ["CATEGORY:SEARCH_ENGINE", "GO_HTTP"],
-    },
-  ],
-});
-
-// Clerk middleware
-const clerk = clerkMiddleware(async (auth, req) => {
-  const { userId, redirectToSignIn } = await auth();
-
-  if (!userId && isProtectedRoute(req)) {
-    return redirectToSignIn();
-  }
-
-  return NextResponse.next();
-});
-
-// Main middleware
 export default async function middleware(req) {
   const url = new URL(req.url);
 
   // Run Arcjet only for API routes
   if (url.pathname.startsWith("/api")) {
-    const decision = await aj.protect(req);
-    if (decision.isDenied()) {
-      return new NextResponse("Forbidden", { status: 403 });
-    }
+    const denied = await arcjetProtect(req);
+    if (denied) return denied;
   }
 
   // Run Clerk for everything
