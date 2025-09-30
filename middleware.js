@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
-// Import only needed ArcJet features
-import createMiddleware from "@arcjet/next/createMiddleware";
-import detectBot from "@arcjet/next/detectBot";
-import shield from "@arcjet/next/shield";
+// Import needed ArcJet features from the main entry point
+import {
+  createMiddleware as createArcjetMiddleware,
+  detectBot,
+  shield,
+} from "@arcjet/next";
 
 // Import Clerk middleware and route matcher
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
@@ -30,12 +32,13 @@ async function getArcjet() {
   });
 }
 
-// Compose middlewares
+// Compose ArcJet middleware
 const arcjet = async (req) => {
   const middleware = await getArcjet();
   return middleware(req);
 };
 
+// Compose Clerk middleware
 const clerk = clerkMiddleware(async (auth, req) => {
   const { userId, redirectToSignIn } = await auth();
   if (!userId && isProtectedRoute(req)) {
@@ -45,7 +48,7 @@ const clerk = clerkMiddleware(async (auth, req) => {
 });
 
 // Export combined middleware
-export default createMiddleware(arcjet, clerk);
+export default createArcjetMiddleware(arcjet, clerk);
 
 export const config = {
   matcher: [
