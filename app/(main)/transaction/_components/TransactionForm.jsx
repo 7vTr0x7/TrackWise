@@ -29,7 +29,7 @@ import { CreateAccountDrawer } from "@/components/CreateAccountDrawer";
 import { cn } from "@/lib/utils";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
-import { ReceiptScanner } from "./recipt-scanner";
+import { ReceiptScanner } from "./ReciptScanner";
 
 export function AddTransactionForm({
   accounts,
