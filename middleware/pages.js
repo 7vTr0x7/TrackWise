@@ -1,6 +1,4 @@
-import arcjet from "@arcjet/next";
-import detectBot from "@arcjet/next/dist/detectBot";
-import shield from "@arcjet/next/dist/shield";
+import { arcjet, detectBot, shield } from "@arcjet/next";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
