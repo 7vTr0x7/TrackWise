@@ -34,7 +34,7 @@ const clerk = clerkMiddleware(async (auth, req) => {
 });
 
 // Main middleware
-export default async function middleware(req: Request) {
+export default async function middleware(req) {
   const url = new URL(req.url);
 
   // Run Arcjet only for API routes
