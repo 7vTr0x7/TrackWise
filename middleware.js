@@ -23,35 +23,18 @@ async function runClerk(req, ev) {
   return handler(ev, req);
 }
 
-// Dynamically load ArcJet core and middleware functions
-async function runArcJet(req) {
-  const arcjetModule = await import("@arcjet/next");
-  const { default: arcjet, detectBot, shield } = arcjetModule;
-  const plugin = arcjet({
-    key: process.env.ARCJET_KEY,
-    rules: [
-      shield({ mode: "LIVE" }),
-      detectBot({
-        mode: process.env.NODE_ENV === "production" ? "LIVE" : "DRY_RUN",
-        allow: ["CATEGORY:SEARCH_ENGINE", "GO_HTTP"],
-      }),
-    ],
-  });
-  return plugin(req);
-}
-
 export default async function middleware(req, ev) {
-  // Run Clerk middleware first
+  // Run Clerk middleware only
   const clerkResponse = await runClerk(req, ev);
   if (clerkResponse) return clerkResponse;
 
-  // Then run ArcJet bot-shielding
-  return await runArcJet(req);
+  // Continue to next step (ArcJet handled in API route)
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    // Only apply to HTML pages and API/trpc routes, skip static assets
+    // Apply only to HTML pages and API/trpc routes (skip assets)
     "/((?!_next/static|_next/image|.*\\.(?:css|js|png|jpg|svg|woff2?)).*)",
     "/(api|trpc)(.*)",
   ],
