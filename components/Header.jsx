@@ -7,7 +7,7 @@ import { checkUser } from "@/lib/checkUser";
 import Image from "next/image";
 
 const Header = async () => {
-  await checkUser();
+  const user = await checkUser();
 
   return (
     <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b">
