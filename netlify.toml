@@ -1,0 +1,6 @@
+[[plugins]]
+package = "netlify-plugin-inngest"
+
+  [plugins.inputs]
+    host = "https://trackwise-v1.netlify.app"
+    path = "/api/inngest"
