@@ -19,10 +19,5 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
-  matcher: [
-    // Only protect sensitive routes with Clerk
-    "/dashboard(.*)",
-    "/account(.*)",
-    "/transaction(.*)",
-  ],
+  matcher: ["/dashboard(.*)", "/account(.*)", "/transaction(.*)"],
 };
