@@ -1,4 +1,6 @@
-import arcjet, { createMiddleware, detectBot, shield } from "@arcjet/next";
+import arcjet from "@arcjet/next";
+import detectBot from "@arcjet/next/dist/detectBot";
+import shield from "@arcjet/next/dist/shield";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -9,13 +11,13 @@ const isProtectedRoute = createRouteMatcher([
   "/transaction(.*)",
 ]);
 
-// Arcjet middleware (slimmed down)
+// Slimmed Arcjet middleware
 const aj = arcjet({
   key: process.env.ARCJET_KEY,
   rules: [
-    shield({ mode: "LIVE" }),
+    shield({ mode: "DRY_RUN" }), // lighter than LIVE
     detectBot({
-      mode: "DRY_RUN", // lighter than LIVE, reduces size
+      mode: "DRY_RUN", // only logs
       allow: ["CATEGORY:SEARCH_ENGINE"],
     }),
   ],
@@ -31,9 +33,11 @@ const clerk = clerkMiddleware(async (auth, req) => {
   return NextResponse.next();
 });
 
-// Chain middlewares
+// Chain Arcjet + Clerk
+import { createMiddleware } from "@arcjet/next";
 export default createMiddleware(aj, clerk);
 
+// Only apply to protected pages
 export const config = {
   matcher: ["/dashboard(.*)", "/account(.*)", "/transaction(.*)"],
 };
