@@ -1,44 +1,48 @@
-import arcjet, { detectBot, shield } from "@arcjet/next";
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { createRouteMatcher } from "@clerk/nextjs/server";
 
-// Match protected routes for Clerk
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/account(.*)",
   "/transaction(.*)",
 ]);
 
-// Arcjet middleware
-const aj = arcjet({
-  key: process.env.ARCJET_KEY,
-  rules: [
-    shield({ mode: "LIVE" }),
-    detectBot({
-      mode: "LIVE",
-      allow: ["CATEGORY:SEARCH_ENGINE", "GO_HTTP"],
-    }),
-  ],
-});
+export async function middleware(req) {
+  const url = req.nextUrl.pathname;
 
-// Clerk middleware
-const clerk = clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+  // Run Arcjet only for API and general routes
+  if (url.startsWith("/api") || url.startsWith("/trpc") || !url.includes(".")) {
+    const arcjet = (await import("@arcjet/next")).default;
+    const { detectBot, shield } = await import("@arcjet/next/rules");
 
-  if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
+    const aj = arcjet({
+      key: process.env.ARCJET_KEY,
+      rules: [
+        shield({ mode: "LIVE" }),
+        detectBot({
+          mode: "LIVE",
+          allow: ["CATEGORY:SEARCH_ENGINE", "GO_HTTP"],
+        }),
+      ],
+    });
+
+    const arcjetResponse = await aj.middleware(req);
+    if (arcjetResponse) return arcjetResponse;
+  }
+
+  // Run Clerk only for protected routes
+  if (isProtectedRoute(req)) {
+    const { clerkMiddleware } = await import("@clerk/nextjs/server");
+    const clerk = clerkMiddleware(async (auth, req) => {
+      const { userId, redirectToSignIn } = await auth();
+      if (!userId) return redirectToSignIn();
+      return NextResponse.next();
+    });
+
+    return clerk.middleware(req);
   }
 
   return NextResponse.next();
-});
-
-// Manual chaining to reduce size overhead
-export async function middleware(req) {
-  const arcjetResponse = await aj.middleware(req);
-  if (arcjetResponse) return arcjetResponse;
-
-  return clerk.middleware(req);
 }
 
 export const config = {
