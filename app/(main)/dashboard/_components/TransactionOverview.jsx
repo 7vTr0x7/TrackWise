@@ -86,8 +86,7 @@ export function DashboardOverview({ accounts, transactions }) {
           </CardTitle>
           <Select
             value={selectedAccountId}
-            onValueChange={setSelectedAccountId}
-          >
+            onValueChange={setSelectedAccountId}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Select account" />
             </SelectTrigger>
@@ -110,8 +109,7 @@ export function DashboardOverview({ accounts, transactions }) {
               recentTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between"
-                >
+                  className="flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">
                       {transaction.description || "Untitled Transaction"}
@@ -127,12 +125,11 @@ export function DashboardOverview({ accounts, transactions }) {
                         transaction.type === "EXPENSE"
                           ? "text-red-500"
                           : "text-green-500"
-                      )}
-                    >
+                      )}>
                       {transaction.type === "EXPENSE" ? (
-                        <ArrowDownRight className="mr-1 h-4 w-4" />
-                      ) : (
                         <ArrowUpRight className="mr-1 h-4 w-4" />
+                      ) : (
+                        <ArrowDownRight className="mr-1 h-4 w-4" />
                       )}
                       ${transaction.amount.toFixed(2)}
                     </div>
@@ -167,8 +164,9 @@ export function DashboardOverview({ accounts, transactions }) {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    label={({ name, value }) => `${name}: $${value.toFixed(2)}`}
-                  >
+                    label={({ name, value }) =>
+                      `${name}: $${value.toFixed(2)}`
+                    }>
                     {pieChartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}

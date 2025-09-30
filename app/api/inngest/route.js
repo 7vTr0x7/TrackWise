@@ -16,12 +16,5 @@ export const { GET, POST, PUT } = serve({
     generateMonthlyReports,
     checkBudgetAlerts,
   ],
-    validateBody: (body) => {
-    try {
-      return body && JSON.parse(body);
-    } catch {
-      console.error("Invalid JSON body:", body);
-      return null;
-    }
-  },
+ 
 });

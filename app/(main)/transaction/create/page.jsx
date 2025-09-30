@@ -4,9 +4,12 @@ import { defaultCategories } from "@/data/categories";
 import { AddTransactionForm } from "../_components/TransactionForm";
 import { getTransaction } from "@/actions/transaction";
 
+import { toast,Toaster } from "sonner";
+
+
 export default async function AddTransactionPage({ searchParams }) {
   const accounts = await getUserAccounts();
-  const editId = searchParams?.edit;
+  const editId = await searchParams?.edit;
 
   let initialData = null;
   if (editId) {

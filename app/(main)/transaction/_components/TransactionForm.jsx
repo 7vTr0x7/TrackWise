@@ -7,7 +7,7 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import useFetch from "@/hooks/useFetch";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ import { CreateAccountDrawer } from "@/components/CreateAccountDrawer";
 import { cn } from "@/lib/utils";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
-import { ReceiptScanner } from "./ReciptScanner";
+import { ReceiptScanner } from "./ReceiptScanner";
 
 export function AddTransactionForm({
   accounts,
@@ -138,8 +138,7 @@ export function AddTransactionForm({
         <label className="text-sm font-medium">Type</label>
         <Select
           onValueChange={(value) => setValue("type", value)}
-          defaultValue={type}
-        >
+          defaultValue={type}>
           <SelectTrigger>
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
@@ -172,8 +171,7 @@ export function AddTransactionForm({
           <label className="text-sm font-medium">Account</label>
           <Select
             onValueChange={(value) => setValue("accountId", value)}
-            defaultValue={getValues("accountId")}
-          >
+            defaultValue={getValues("accountId")}>
             <SelectTrigger>
               <SelectValue placeholder="Select account" />
             </SelectTrigger>
@@ -186,8 +184,7 @@ export function AddTransactionForm({
               <CreateAccountDrawer>
                 <Button
                   variant="ghost"
-                  className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                >
+                  className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground">
                   Create Account
                 </Button>
               </CreateAccountDrawer>
@@ -204,8 +201,7 @@ export function AddTransactionForm({
         <label className="text-sm font-medium">Category</label>
         <Select
           onValueChange={(value) => setValue("category", value)}
-          defaultValue={getValues("category")}
-        >
+          defaultValue={getValues("category")}>
           <SelectTrigger>
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
@@ -232,8 +228,7 @@ export function AddTransactionForm({
               className={cn(
                 "w-full pl-3 text-left font-normal",
                 !date && "text-muted-foreground"
-              )}
-            >
+              )}>
               {date ? format(date, "PPP") : <span>Pick a date</span>}
               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
             </Button>
@@ -284,8 +279,7 @@ export function AddTransactionForm({
           <label className="text-sm font-medium">Recurring Interval</label>
           <Select
             onValueChange={(value) => setValue("recurringInterval", value)}
-            defaultValue={getValues("recurringInterval")}
-          >
+            defaultValue={getValues("recurringInterval")}>
             <SelectTrigger>
               <SelectValue placeholder="Select interval" />
             </SelectTrigger>
@@ -309,12 +303,11 @@ export function AddTransactionForm({
         <Button
           type="button"
           variant="outline"
-          className="w-full"
-          onClick={() => router.back()}
-        >
+          className="flex-1"
+          onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" className="w-full" disabled={transactionLoading}>
+        <Button type="submit" className="flex-1" disabled={transactionLoading}>
           {transactionLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
