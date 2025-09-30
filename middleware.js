@@ -1,5 +1,8 @@
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { createRouteMatcher } from "@clerk/nextjs/server";
+
+// Only import Arcjet dynamically inside handler to reduce bundle size
+let ajMiddleware;
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
@@ -7,58 +10,55 @@ const isProtectedRoute = createRouteMatcher([
   "/transaction(.*)",
 ]);
 
-export async function middleware(req) {
-  const url = req.nextUrl.pathname;
+async function getArcjetMiddleware() {
+  if (!ajMiddleware) {
+    const {
+      default: arcjet,
+      detectBot,
+      shield,
+      createMiddleware,
+    } = await import("@arcjet/next");
 
-  // ARCJET: Only load when needed
-  if (
-    url.startsWith("/api") ||
-    url.startsWith("/trpc") ||
-    (!url.includes(".") &&
-      !url.startsWith("/dashboard") &&
-      !url.startsWith("/account") &&
-      !url.startsWith("/transaction"))
-  ) {
-    const arcjetModule = await import("@arcjet/next");
-    const arcjet = arcjetModule.default;
-    const { detectBot, shield } = arcjetModule;
-
-    const aj = arcjet({
-      key: process.env.ARCJET_KEY,
-      rules: [
-        shield({ mode: "LIVE" }),
-        detectBot({
-          mode: "LIVE",
-          allow: ["CATEGORY:SEARCH_ENGINE", "GO_HTTP"],
-        }),
-      ],
-    });
-
-    const arcjetResponse = await aj.middleware(req);
-    if (arcjetResponse) return arcjetResponse;
+    ajMiddleware = createMiddleware(
+      arcjet({
+        key: process.env.ARCJET_KEY,
+        rules: [
+          shield({ mode: "LIVE" }),
+          detectBot({
+            mode: "LIVE",
+            allow: ["CATEGORY:SEARCH_ENGINE", "GO_HTTP"],
+          }),
+        ],
+      })
+    );
   }
+  return ajMiddleware;
+}
 
-  // CLERK: Only load for protected routes
-  if (isProtectedRoute(req)) {
-    const { clerkMiddleware } = await import("@clerk/nextjs/server");
-    const clerk = clerkMiddleware(async (auth, req) => {
-      const { userId, redirectToSignIn } = await auth();
-      if (!userId) return redirectToSignIn();
-      return NextResponse.next();
-    });
+// Clerk middleware
+const clerk = clerkMiddleware(async (auth, req) => {
+  const { userId } = await auth();
 
-    return clerk.middleware(req);
+  if (!userId && isProtectedRoute(req)) {
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
   }
 
   return NextResponse.next();
+});
+
+// Combined middleware
+export default async function middleware(req) {
+  const aj = await getArcjetMiddleware();
+  const arcjetResponse = await aj(req);
+  if (arcjetResponse) return arcjetResponse;
+
+  return clerk(req);
 }
 
 export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
-    "/dashboard(.*)",
-    "/account(.*)",
-    "/transaction(.*)",
   ],
 };
